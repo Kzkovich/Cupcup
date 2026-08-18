@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Не могу войти{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:0 auto;">
+  <h1>Не могу войти</h1>
+  <p><small>Опишите, кто вы, и организатор выдаст вам ссылку для входа.</small></p>
+  <form method="post" action="/auth/cant-login">
+    <div class="field">
+      <label>Ваша почта или игровой ник</label>
+      <input type="text" name="identifier" required>
+    </div>
+    <div class="field">
+      <label>Как с вами связаться (Telegram, телефон...)</label>
+      <input type="text" name="contact_note" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Отправить заявку</button>
+  </form>
+  <div class="card-tight" style="background:var(--bg-elev-2);margin-top:16px;">
+    <strong>Или сразу напишите организаторам:</strong><br>{{ org_contact }}
+  </div>
+</div>
+{% endblock %}

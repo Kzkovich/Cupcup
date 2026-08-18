@@ -1,0 +1,13 @@
+<div class="row" style="margin-bottom:18px;">
+  <a href="/admin/{{ game.key }}" class="btn btn-sm">Дашборд</a>
+  <a href="/admin/{{ game.key }}/teams" class="btn btn-sm">Команды</a>
+  <a href="/admin/{{ game.key }}/players" class="btn btn-sm">Игроки</a>
+  <a href="/admin/{{ game.key }}/export.csv" class="btn btn-sm">Экспорт CSV</a>
+  <a href="/admin/reset-requests" class="btn btn-sm">Заявки на сброс</a>
+  <span class="spacer"></span>
+  <div class="game-switch">
+    {% for gkey, gcfg in GAMES.items() %}
+    <a href="/admin/{{ gkey }}" class="{{ 'active' if gkey == game.key else '' }}">{{ gcfg.label }}</a>
+    {% endfor %}
+  </div>
+</div>

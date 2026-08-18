@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Создать команду — {{ game.label }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px;margin:0 auto;">
+  <h1>Создать команду — {{ game.label }}</h1>
+  <p><small>Вы играете под ником <strong>{{ own_profile.nickname }}</strong> ({{ game.display_rating(own_profile.rating_raw) }}). Не тот профиль? <a href="/{{ game.key }}/profile">Изменить</a>.</small></p>
+
+  <form method="post" action="/{{ game.key }}/teams/new">
+    <div class="field">
+      <label>Название команды</label>
+      <input type="text" name="name" required value="{{ form.name if form else '' }}">
+      <div class="hint">Можно будет поменять позже</div>
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1">
+        <label>Тег (необязательно)</label>
+        <input type="text" name="tag" maxlength="10" value="{{ form.tag if form else '' }}">
+      </div>
+    </div>
+    <div class="field">
+      <label>Описание</label>
+      <textarea name="description" placeholder="Например: ищем активных и задротов, играем по вечерам будни">{{ form.description if form else '' }}</textarea>
+    </div>
+
+    <div class="row">
+      <div class="field" style="flex:1">
+        <label>Желаемый рейтинг участников от</label>
+        {% if game.rating_kind == 'numeric' %}
+          <input type="number" name="rating_min_wanted" min="{{ game.rating_min }}" max="{{ game.rating_max }}">
+        {% else %}
+          <select name="rating_min_wanted"><option value="">—</option>{% for c in game.rating_choices %}<option value="{{ c.key }}">{{ c.label }}</option>{% endfor %}</select>
+        {% endif %}
+      </div>
+      <div class="field" style="flex:1">
+        <label>до</label>
+        {% if game.rating_kind == 'numeric' %}
+          <input type="number" name="rating_max_wanted" min="{{ game.rating_min }}" max="{{ game.rating_max }}">
+        {% else %}
+          <select name="rating_max_wanted"><option value="">—</option>{% for c in game.rating_choices %}<option value="{{ c.key }}">{{ c.label }}</option>{% endfor %}</select>
+        {% endif %}
+      </div>
+    </div>
+    <div class="hint" style="margin:-8px 0 16px;">Необязательно — влияет только на подсказку игрокам и фильтр в списке</div>
+
+    <fieldset>
+      <legend>Состав — {{ game.roster_size }} ролей</legend>
+      {% for r in game.roles %}
+      {% set plan = form.slot_plan.get(r.key) if form and form.slot_plan else None %}
+      <div class="row" style="margin-bottom:10px;align-items:flex-start;">
+        <div style="width:150px;flex-shrink:0;padding-top:9px;font-weight:600;font-size:.9rem;">{{ r.label }}</div>
+        <select name="role_{{ r.key }}" style="width:200px;flex:none;">
+          <option value="mine" {{ 'selected' if plan and plan[0]=='mine' else '' }}>Я играю здесь</option>
+          <option value="open" {{ 'selected' if not plan or plan[0]=='open' else '' }}>Ищем игрока</option>
+          <option value="reserved" {{ 'selected' if plan and plan[0]=='reserved' else '' }}>Занято другом</option>
+        </select>
+        <input type="text" name="note_{{ r.key }}" placeholder="Заметка, если занято другом" style="flex:1;min-width:160px;" value="{{ plan[1] if plan else '' }}">
+      </div>
+      {% endfor %}
+      <div class="hint">Ровно одна роль должна быть отмечена «Я играю здесь»</div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary btn-block">Создать команду</button>
+  </form>
+</div>
+{% endblock %}

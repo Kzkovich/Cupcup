@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Код восстановления{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:0 auto;text-align:center;">
+  <h1>Сохраните код восстановления</h1>
+  <p><small>Он показывается только один раз. Если забудете пароль — этот код позволит войти самостоятельно, без организаторов.</small></p>
+  <div class="card-tight" style="background:var(--bg-elev-2);font-size:1.5rem;letter-spacing:2px;font-weight:700;margin:16px 0;">
+    {{ code }}
+  </div>
+  <p><small>Сфотографируйте экран или запишите куда-нибудь — потом этот код нигде не показывается.</small></p>
+  <a href="/" class="btn btn-primary btn-block">Понял, продолжить</a>
+</div>
+{% endblock %}

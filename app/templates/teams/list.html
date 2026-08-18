@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Команды — {{ game.label }}{% endblock %}
+{% block content %}
+<div class="row-between">
+  <h1>Команды — {{ game.label }}</h1>
+  <a href="/{{ game.key }}/teams/new" class="btn btn-primary">+ Создать команду</a>
+</div>
+
+{% if my_active_team %}
+<div class="card card-tight" style="border-color:var(--accent);">
+  Вы уже в команде <a href="/{{ game.key }}/teams/{{ my_active_team.id }}"><strong>{{ my_active_team.name }}</strong></a> в этой дисциплине.
+</div>
+{% endif %}
+
+<form method="get" class="filters card card-tight">
+  <div class="field">
+    <label>Моя роль</label>
+    <select name="role">
+      <option value="">Любая</option>
+      {% for r in game.roles %}
+      <option value="{{ r.key }}" {{ 'selected' if role == r.key else '' }}>{{ r.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label>Ищут рейтинг от</label>
+    {% if game.rating_kind == 'numeric' %}
+      <input type="number" name="rating_min" value="{{ rating_min }}" placeholder="{{ game.rating_min }}">
+    {% else %}
+      <select name="rating_min">
+        <option value="">—</option>
+        {% for c in game.rating_choices %}<option value="{{ c.key }}" {{ 'selected' if rating_min == c.key else '' }}>{{ c.label }}</option>{% endfor %}
+      </select>
+    {% endif %}
+  </div>
+  <div class="field">
+    <label>до</label>
+    {% if game.rating_kind == 'numeric' %}
+      <input type="number" name="rating_max" value="{{ rating_max }}" placeholder="{{ game.rating_max }}">
+    {% else %}
+      <select name="rating_max">
+        <option value="">—</option>
+        {% for c in game.rating_choices %}<option value="{{ c.key }}" {{ 'selected' if rating_max == c.key else '' }}>{{ c.label }}</option>{% endfor %}
+      </select>
+    {% endif %}
+  </div>
+  <div class="checkbox-row">
+    <input type="checkbox" name="open_only" id="open_only" value="true" {{ 'checked' if open_only else '' }}>
+    <label for="open_only">Только с открытыми слотами</label>
+  </div>
+  <button type="submit" class="btn">Применить</button>
+  {% if role or rating_min or rating_max or open_only %}<a href="/{{ game.key }}/teams" class="btn btn-sm">Сбросить</a>{% endif %}
+</form>
+
+{% if not rows %}
+<div class="empty">
+  <p>Пока нет команд{% if role or rating_min or rating_max or open_only %} по этим фильтрам{% endif %}.</p>
+  <a href="/{{ game.key }}/teams/new" class="btn btn-primary">Стать первой командой</a>
+</div>
+{% else %}
+<div class="card-grid">
+  {% for row in rows %}
+  <a class="card" href="/{{ game.key }}/teams/{{ row.team.id }}" style="display:block;color:inherit;">
+    <div class="row-between">
+      <h3 style="margin:0;">{{ row.team.name }}{% if row.team.tag %} <small>[{{ row.team.tag }}]</small>{% endif %}</h3>
+      <span class="pill pill-status-{{ row.team.status }}">
+        {% if row.team.status == 'recruiting' %}набор{% elif row.team.status == 'full' %}собрана{% elif row.team.status == 'locked' %}набор приостановлен{% endif %}
+      </span>
+    </div>
+    <p style="margin:8px 0;"><small>{{ row.team.filled_count }}/{{ row.team.slots|length }} · средний рейтинг {{ row.avg_label }}</small></p>
+    {% if row.open_roles %}
+    <div class="chip-row">
+      {% for r in row.open_roles %}<span class="pill pill-open">{{ r.short }} открыт</span>{% endfor %}
+    </div>
+    {% endif %}
+    {% if row.team.description %}<p style="margin-top:8px;color:var(--text-dim);font-size:.88rem;">{{ row.team.description[:120] }}{% if row.team.description|length > 120 %}…{% endif %}</p>{% endif %}
+    <small style="color:var(--text-dimmer);">обновлено {{ row.team.bumped_at|timeago }}</small>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

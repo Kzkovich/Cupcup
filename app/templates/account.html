@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Личные данные{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin:0 auto;">
+  <h1>Личные данные</h1>
+  <p><small>Почта: {{ user.email }} · <a href="/auth/change-password">сменить пароль</a></small></p>
+  <form method="post" action="/account">
+    <div class="field">
+      <label>Как с вами связаться (Telegram, Discord...)</label>
+      <input type="text" name="contact_note" value="{{ user.contact_note or '' }}" placeholder="Telegram: @nickname">
+      <div class="hint">Показывается капитанам и другим игрокам вместо телефона</div>
+    </div>
+
+    <fieldset>
+      <legend>Необязательно, требует согласия 152-ФЗ</legend>
+      <div class="field">
+        <label>Имя</label>
+        <input type="text" name="display_name" value="{{ user.display_name or '' }}">
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input type="tel" name="phone" value="{{ user.phone or '' }}">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" name="consent_152fz" id="consent" value="true" {{ 'checked' if user.consent_152fz_at else '' }}>
+        <label for="consent">Согласен(на) на обработку персональных данных. Видно только капитану команды, куда вы подали заявку, и организаторам.</label>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+  </form>
+</div>
+
+{% if telegram_enabled %}
+<div class="card" style="max-width:520px;margin:16px auto 0;">
+  <h3>Уведомления в Telegram</h3>
+  <p><small>Необязательно. Дублирует уведомления с сайта в личные сообщения бота — можно не подключать вовсе.</small></p>
+  {% if user.tg_chat_id %}
+    <p>Подключено{% if user.tg_username %} как @{{ user.tg_username }}{% endif %}.</p>
+    <form method="post" action="/account/telegram/unlink"><button class="btn btn-sm btn-danger">Отключить</button></form>
+  {% elif tg_link %}
+    <p><a href="{{ tg_link }}" class="btn btn-primary" target="_blank" rel="noopener">Открыть Telegram и подтвердить</a></p>
+    <div class="hint">Ссылка действует 5 минут. Если не открылась — напишите боту то, что после t.me/ в этой ссылке, командой /start.</div>
+  {% else %}
+    <form method="post" action="/account/telegram/link"><button class="btn btn-sm">Подключить Telegram</button></form>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

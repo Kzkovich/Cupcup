@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Свободные агенты — {{ game.label }}{% endblock %}
+{% block content %}
+<h1>Свободные агенты — {{ game.label }}</h1>
+<p><small>Игроки без команды, которые готовы, чтобы их пригласили.</small></p>
+
+<form method="get" class="filters card card-tight">
+  <div class="field">
+    <label>Роль</label>
+    <select name="role">
+      <option value="">Любая</option>
+      {% for r in game.roles %}<option value="{{ r.key }}" {{ 'selected' if role == r.key else '' }}>{{ r.label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label>Рейтинг от</label>
+    {% if game.rating_kind == 'numeric' %}
+      <input type="number" name="rating_min" value="{{ rating_min }}">
+    {% else %}
+      <select name="rating_min"><option value="">—</option>{% for c in game.rating_choices %}<option value="{{ c.key }}" {{ 'selected' if rating_min == c.key else '' }}>{{ c.label }}</option>{% endfor %}</select>
+    {% endif %}
+  </div>
+  <div class="field">
+    <label>до</label>
+    {% if game.rating_kind == 'numeric' %}
+      <input type="number" name="rating_max" value="{{ rating_max }}">
+    {% else %}
+      <select name="rating_max"><option value="">—</option>{% for c in game.rating_choices %}<option value="{{ c.key }}" {{ 'selected' if rating_max == c.key else '' }}>{{ c.label }}</option>{% endfor %}</select>
+    {% endif %}
+  </div>
+  <button type="submit" class="btn">Применить</button>
+  {% if role or rating_min or rating_max %}<a href="/{{ game.key }}/agents" class="btn btn-sm">Сбросить</a>{% endif %}
+</form>
+
+{% if not profiles %}
+<div class="empty"><p>Свободных агентов по этим фильтрам пока нет.</p></div>
+{% else %}
+<div class="card-grid">
+  {% for p in profiles %}
+  <div class="card">
+    <div class="row-between">
+      <h3 style="margin:0;">{{ p.nickname }}</h3>
+      <span class="pill pill-verify-{{ p.verify_status }}">{% if p.verify_status == 'ok' %}✓{% elif p.verify_status == 'mismatch' %}⚠{% endif %}</span>
+    </div>
+    <p style="margin:6px 0;"><small>{{ game.display_rating(p.rating_raw) }}{% if p.region %} · {{ p.region }}{% endif %}</small></p>
+    {% if p.preferred_roles %}
+    <div class="chip-row">{% for rk in p.preferred_roles %}{% set r = game.role_by_key(rk) %}{% if r %}<span class="pill">{{ r.short }}</span>{% endif %}{% endfor %}</div>
+    {% endif %}
+    {% if p.about %}<p style="margin:8px 0;color:var(--text-dim);font-size:.88rem;">{{ p.about }}</p>{% endif %}
+    {% if p.profile_url %}<p><small><a href="{{ p.profile_url }}" target="_blank" rel="noopener">Профиль игрока →</a></small></p>{% endif %}
+
+    {% if my_team %}
+    <details style="margin-top:8px;">
+      <summary class="btn btn-sm btn-primary" style="display:inline-flex;">Пригласить</summary>
+      <form method="post" action="/{{ game.key }}/agents/{{ p.user_id }}/invite" class="stack" style="margin-top:8px;">
+        <select name="role" required>
+          {% for r in my_open_roles %}<option value="{{ r.key }}">{{ r.label }}</option>{% endfor %}
+        </select>
+        <textarea name="message" placeholder="Короткое сообщение (необязательно)"></textarea>
+        <button type="submit" class="btn btn-sm btn-primary">Отправить приглашение</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

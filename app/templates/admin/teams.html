@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Команды — админка{% endblock %}
+{% block content %}
+<h1>Команды — {{ game.label }}</h1>
+{% include "admin/_nav.html" %}
+
+<form method="get" class="filters card card-tight">
+  <div class="field"><label>Поиск по названию</label><input type="text" name="q" value="{{ q }}"></div>
+  <button type="submit" class="btn">Найти</button>
+</form>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Название</th><th>Статус</th><th>Состав</th><th>Средний рейтинг</th><th>Капитан</th><th>Создана</th><th></th></tr>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.team.name }}{% if row.team.tag %} [{{ row.team.tag }}]{% endif %}</td>
+    <td><span class="pill pill-status-{{ row.team.status }}">{{ row.team.status }}</span></td>
+    <td>{{ row.team.filled_count }}/{{ row.team.slots|length }}</td>
+    <td>{{ row.avg_label }}</td>
+    <td>{{ row.team.captain.email }}</td>
+    <td>{{ row.team.created_at|dt }}</td>
+    <td><a href="/{{ game.key }}/teams/{{ row.team.id }}" class="btn btn-sm">Открыть</a></td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

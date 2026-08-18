@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Вход — AlfaCyberCup{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;margin:0 auto;">
+  <h1>Вход</h1>
+  <form method="post" action="/auth/login">
+    <input type="hidden" name="next" value="{{ next or '/' }}">
+    <div class="field">
+      <label>Почта</label>
+      <input type="email" name="email" required value="{{ form.email if form else '' }}">
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Войти</button>
+  </form>
+  <p style="margin-top:14px;"><small><a href="/auth/forgot">Забыли пароль?</a> · <a href="/auth/cant-login">Не могу войти</a></small></p>
+  <p><small>Нет аккаунта? <a href="/auth/register">Зарегистрироваться</a></small></p>
+</div>
+{% endblock %}

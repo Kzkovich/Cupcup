@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — AlfaCyberCup{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:0 auto;">
+  <h1>Регистрация</h1>
+  <p><small>Почта используется только как логин — писем мы не отправляем.</small></p>
+  <form method="post" action="/auth/register">
+    <div class="field">
+      <label>Почта</label>
+      <input type="email" name="email" required value="{{ form.email if form else '' }}">
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1">
+        <label>Пароль</label>
+        <input type="password" name="password" required minlength="8">
+      </div>
+      <div class="field" style="flex:1">
+        <label>Повторите пароль</label>
+        <input type="password" name="password2" required minlength="8">
+      </div>
+    </div>
+    <div class="hint" style="margin:-8px 0 16px;">Минимум 8 символов</div>
+
+    {% if invite_required %}
+    <div class="field">
+      <label>Код приглашения</label>
+      <input type="text" name="invite_code" required>
+    </div>
+    {% endif %}
+
+    <fieldset>
+      <legend>Необязательно</legend>
+      <div class="field">
+        <label>Имя</label>
+        <input type="text" name="display_name" value="{{ form.display_name if form else '' }}">
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input type="tel" name="phone" placeholder="+7..." value="{{ form.phone if form else '' }}">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" name="consent_152fz" id="consent" value="true">
+        <label for="consent">Согласен(на) на обработку персональных данных (152-ФЗ). Нужно только если заполнили имя или телефон — иначе для связи используйте поле «как со мной связаться» в игровом профиле.</label>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary btn-block">Создать аккаунт</button>
+  </form>
+  <p style="margin-top:14px;"><small>Уже есть аккаунт? <a href="/auth/login">Войти</a></small></p>
+</div>
+{% endblock %}

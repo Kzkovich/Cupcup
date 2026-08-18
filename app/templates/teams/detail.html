@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} — {{ game.label }}{% endblock %}
+{% block content %}
+<div class="row-between">
+  <div>
+    <h1 style="margin-bottom:2px;">{{ team.name }}{% if team.tag %} <small>[{{ team.tag }}]</small>{% endif %}</h1>
+    <span class="pill pill-status-{{ team.status }}">
+      {% if team.status == 'recruiting' %}идёт набор{% elif team.status == 'full' %}состав собран{% elif team.status == 'locked' %}набор приостановлен{% elif team.status == 'disbanded' %}расформирована{% endif %}
+    </span>
+    <small style="margin-left:8px;color:var(--text-dimmer);">обновлено {{ team.bumped_at|timeago }}</small>
+  </div>
+  {% if is_captain %}<a href="/{{ game.key }}/teams/{{ team.id }}/edit" class="btn btn-sm">Редактировать</a>{% endif %}
+</div>
+
+{% if team.description %}<p class="card card-tight">{{ team.description }}</p>{% endif %}
+
+<p><small>Средний рейтинг состава: <strong>{{ avg_label }}</strong>
+{% if team.rating_min_wanted or team.rating_max_wanted %} · ищут: {{ game.display_ordinal(team.rating_min_wanted) if team.rating_min_wanted else '…' }} — {{ game.display_ordinal(team.rating_max_wanted) if team.rating_max_wanted else '…' }}{% endif %}
+</small></p>
+
+<h2>Состав ({{ team.filled_count }}/{{ view|length }})</h2>
+<div class="roster">
+  {% for v in view %}
+  <div class="slot {{ 'slot-filled' if v.slot.state == 'filled' else '' }}">
+    <div class="slot-role">{{ v.role.short }}</div>
+    <div class="slot-body">
+      {% if v.slot.state == 'filled' %}
+        <div class="slot-title">
+          {{ v.profile.nickname if v.profile else (v.user.email if v.user else '—') }}
+          {% if v.slot.user_id == team.captain_id %}<span class="pill">капитан</span>{% endif %}
+          {% if v.profile %}<span class="pill pill-verify-{{ v.profile.verify_status }}">{% if v.profile.verify_status == 'ok' %}✓ проверен{% elif v.profile.verify_status == 'mismatch' %}⚠ расхождение{% else %}не проверен{% endif %}</span>{% endif %}
+        </div>
+        <div class="slot-sub">
+          {{ v.role.label }} · {{ game.display_rating(v.profile.rating_raw) if v.profile else '—' }}
+          {% if can_see_contacts and v.user %} · {{ v.user.contact_note or 'контакт не указан' }}{% endif %}
+        </div>
+      {% elif v.slot.state == 'reserved' %}
+        <div class="slot-title">{{ v.role.label }} <span class="pill pill-reserved">занято другом</span></div>
+        <div class="slot-sub">{{ v.slot.note or '' }}</div>
+      {% else %}
+        <div class="slot-title">{{ v.role.label }} <span class="pill pill-open">ищем игрока</span></div>
+      {% endif %}
+    </div>
+
+    {% if is_captain %}
+    <div class="row" style="flex-shrink:0;">
+      {% if v.slot.state == 'filled' and v.slot.user_id != team.captain_id %}
+        <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/slots/{{ v.slot.id }}" data-confirm="Исключить игрока из команды?">
+          <input type="hidden" name="action" value="kick">
+          <button type="submit" class="btn btn-sm btn-danger">Исключить</button>
+        </form>
+        <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/transfer-captain" data-confirm="Передать капитанство этому игроку?">
+          <input type="hidden" name="new_captain_user_id" value="{{ v.slot.user_id }}">
+          <button type="submit" class="btn btn-sm">Сделать капитаном</button>
+        </form>
+      {% elif v.slot.state == 'reserved' %}
+        <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/slots/{{ v.slot.id }}">
+          <input type="hidden" name="action" value="set_open">
+          <button type="submit" class="btn btn-sm">Открыть слот</button>
+        </form>
+      {% elif v.slot.state == 'open' %}
+        <details>
+          <summary class="btn btn-sm" style="display:inline-flex;">Занято другом</summary>
+          <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/slots/{{ v.slot.id }}" class="row" style="margin-top:6px;">
+            <input type="hidden" name="action" value="set_reserved">
+            <input type="text" name="note" placeholder="Имя друга" required style="width:140px;">
+            <button type="submit" class="btn btn-sm">Ок</button>
+          </form>
+        </details>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top:20px;">
+{% if not user %}
+  <a href="/auth/login?next=/{{ game.key }}/teams/{{ team.id }}" class="btn btn-primary btn-block">Войдите, чтобы подать заявку</a>
+{% elif is_captain %}
+  <h3>Управление командой</h3>
+  <div class="row">
+    <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/bump"><button class="btn btn-sm">Поднять в списке</button></form>
+    <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/toggle-status">
+      <button class="btn btn-sm">{{ 'Возобновить набор' if team.status == 'locked' else 'Приостановить набор' }}</button>
+    </form>
+    <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/disband" data-confirm="Расформировать команду? Это необратимо.">
+      <button class="btn btn-sm btn-danger">Расформировать</button>
+    </form>
+  </div>
+  <p style="margin-top:10px;"><a href="/{{ game.key }}/applications">Входящие заявки →</a></p>
+{% elif my_application %}
+  <p>Заявка отправлена {{ my_application.created_at|timeago }}, ждём решения капитана.</p>
+  <form method="post" action="/applications/{{ my_application.id }}/withdraw" data-confirm="Отозвать заявку?">
+    <button class="btn btn-sm btn-danger">Отозвать заявку</button>
+  </form>
+{% elif my_active_team %}
+  <p>Вы уже в команде <a href="/{{ game.key }}/teams/{{ my_active_team.id }}">{{ my_active_team.name }}</a> — сначала покиньте её.</p>
+{% elif team.status != 'recruiting' or not team.open_roles %}
+  <p><small>Сейчас команда не набирает игроков.</small></p>
+{% else %}
+  <h3>Вступить в команду</h3>
+  <form method="post" action="/{{ game.key }}/teams/{{ team.id }}/apply">
+    <div class="field">
+      <label>На какую роль (можно несколько)</label>
+      <div class="chip-row">
+        {% for rk in team.open_roles %}
+        {% set r = game.role_by_key(rk) %}
+        <label class="checkbox-row" style="display:inline-flex;"><input type="checkbox" name="roles" value="{{ r.key }}"><span>{{ r.label }}</span></label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="field">
+      <label>Сообщение капитану</label>
+      <textarea name="message" placeholder="Коротко о себе, доступность по времени..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Отправить заявку</button>
+  </form>
+{% endif %}
+</div>
+{% endblock %}

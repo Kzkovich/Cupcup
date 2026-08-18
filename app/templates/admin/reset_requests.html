@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Заявки на сброс — админка{% endblock %}
+{% block content %}
+<h1>Заявки на сброс доступа</h1>
+<div class="row" style="margin-bottom:18px;">
+  {% for gkey, gcfg in GAMES.items() %}<a href="/admin/{{ gkey }}" class="btn btn-sm">Админка {{ gcfg.label }}</a>{% endfor %}
+</div>
+
+{% if issued_link %}
+<div class="card" style="border-color:var(--accent);">
+  <strong>Ссылка для {{ issued_link.email }}:</strong>
+  <p><code style="word-break:break-all;">{{ issued_link.link }}</code></p>
+  <p><small>Скопируйте и отправьте игроку в тот канал, из которого он написал. Ссылка одноразовая, живёт 24 часа.</small></p>
+</div>
+{% endif %}
+
+<h2>Ожидают ({{ pending|length }})</h2>
+{% if not pending %}
+  <p class="empty">Заявок нет.</p>
+{% else %}
+<div class="stack">
+  {% for rr in pending %}
+  <div class="card card-tight">
+    <div class="row-between">
+      <div>
+        <strong>{{ rr.identifier }}</strong>
+        <div><small>связь: {{ rr.contact_note }} · {{ rr.created_at|timeago }}</small></div>
+      </div>
+      <form method="post" action="/admin/reset-requests/{{ rr.id }}/dismiss"><button class="btn btn-sm">Закрыть без действий</button></form>
+    </div>
+    <form method="get" action="/admin/reset-requests" class="row" style="margin-top:8px;">
+      <input type="text" name="q" placeholder="Найти пользователя по почте/нику" value="{{ q }}" style="flex:1;">
+      <input type="hidden" name="request_id" value="{{ rr.id }}">
+      <button type="submit" class="btn btn-sm">Искать</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if q %}
+<h2>Результаты поиска «{{ q }}»</h2>
+{% if not found_users %}
+  <p class="empty">Никого не нашли.</p>
+{% else %}
+<div class="table-wrap">
+<table>
+  <tr><th>Почта</th><th>Имя</th><th></th></tr>
+  {% for u in found_users %}
+  <tr>
+    <td>{{ u.email }}</td>
+    <td>{{ u.display_name or '—' }}</td>
+    <td>
+      <form method="post" action="/admin/users/{{ u.id }}/issue-reset-link">
+        <input type="hidden" name="request_id" value="{{ request.query_params.get('request_id', '') }}">
+        <button class="btn btn-sm btn-primary">Выдать ссылку для входа</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

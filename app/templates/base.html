@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}AlfaCyberCup{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <meta name="robots" content="noindex">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">Alfa<span>Cyber</span>Cup</a>
+
+      {% if game %}
+      <nav class="game-switch">
+        {% for gkey, gcfg in GAMES.items() %}
+          <a href="/{{ gkey }}/teams" class="{{ 'active' if gkey == game.key else '' }}">{{ gcfg.label }}</a>
+        {% endfor %}
+      </nav>
+      {% endif %}
+
+      <nav class="nav-links">
+        {% if game %}
+          <a href="/{{ game.key }}/teams">Команды</a>
+          <a href="/{{ game.key }}/agents">Свободные агенты</a>
+          {% if user %}<a href="/{{ game.key }}/me">Мой кабинет</a>{% endif %}
+        {% endif %}
+        {% if user %}
+          {% if game %}<a href="/{{ game.key }}/profile">Мой профиль</a>{% endif %}
+          <a href="/account">Личные данные</a>
+          <a href="/notifications">Уведомления{% if notif_unread_count %}<span class="badge-count">{{ notif_unread_count }}</span>{% endif %}</a>
+          {% if user.is_admin %}<a href="/admin/{{ game.key if game else 'dota2' }}">Админка</a>{% endif %}
+          <form method="post" action="/auth/logout" style="display:inline">
+            <button type="submit">Выйти</button>
+          </form>
+        {% else %}
+          <a href="/auth/login">Войти</a>
+          <a href="/auth/register">Регистрация</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      {% if flashed %}
+      <div class="flash-list">
+        {% for f in flashed %}
+        <div class="flash flash-{{ f.level }}">{{ f.text }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">AlfaCyberCup · турнир по Dota 2 и League of Legends</div>
+  </footer>
+
+  <script src="/static/js/main.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

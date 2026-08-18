@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Админка — {{ game.label }}{% endblock %}
+{% block content %}
+<h1>Админка — {{ game.label }}</h1>
+{% include "admin/_nav.html" %}
+
+<div class="stat-grid">
+  <div class="stat-tile"><div class="num">{{ stats.total_users }}</div><div class="label">пользователей всего</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.with_profile }}</div><div class="label">с профилем {{ game.label }}</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.engaged }}</div><div class="label">создали команду или подали заявку</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.in_team }}</div><div class="label">уже в составе</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.teams_total }}</div><div class="label">команд (активных)</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.teams_recruiting }}</div><div class="label">набирают игроков</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.teams_full }}</div><div class="label">состав собран</div></div>
+  <div class="stat-tile"><div class="num">{{ stats.teams_locked }}</div><div class="label">набор приостановлен</div></div>
+</div>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Распределение рейтинга</h3>
+    {% if not histogram %}
+      <p class="empty">Пока нет данных.</p>
+    {% else %}
+    <div class="hist">
+      {% for label, count in histogram %}
+      <div class="hist-row">
+        <div class="hist-label">{{ label }}</div>
+        <div class="hist-bar-track"><div class="hist-bar" style="width:{{ (count / max_bucket * 100)|round(1) }}%;"></div></div>
+        <div class="hist-count">{{ count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Дефицит ролей</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Роль</th><th>Открытых слотов</th><th>Ждут роль</th></tr>
+        {% for row in role_deficit %}
+        <tr>
+          <td>{{ row.role.label }}</td>
+          <td>{{ row.open_slots }}</td>
+          <td>{{ row.waiting_players }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Дольше всех ищут команду</h3>
+  {% if not waiting_profiles %}
+    <p class="empty">Свободных агентов нет.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table>
+      <tr><th>Ник</th><th>Рейтинг</th><th>Роли</th><th>Ждёт</th></tr>
+      {% for p in waiting_profiles %}
+      <tr>
+        <td>{{ p.nickname }}</td>
+        <td>{{ game.display_rating(p.rating_raw) }}</td>
+        <td>{{ p.preferred_roles|map('upper')|join(', ') }}</td>
+        <td>{{ p.created_at|timeago }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

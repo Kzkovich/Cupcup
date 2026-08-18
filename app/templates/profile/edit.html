@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Профиль {{ game.label }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:560px;margin:0 auto;">
+  <h1>Профиль — {{ game.label }}</h1>
+
+  {% if profile and profile.id and game.has_auto_verify %}
+  <div class="row-between card-tight" style="background:var(--bg-elev-2);margin-bottom:16px;">
+    <div>
+      <span class="pill pill-verify-{{ profile.verify_status }}">
+        {% if profile.verify_status == 'ok' %}✓ рейтинг подтверждён
+        {% elif profile.verify_status == 'mismatch' %}⚠ расхождение с профилем
+        {% elif profile.verify_status == 'private' %}профиль скрыт
+        {% elif profile.verify_status == 'failed' %}проверить не удалось
+        {% else %}не проверялся
+        {% endif %}
+      </span>
+      {% if profile.verified_label %}<small> — по OpenDota: {{ profile.verified_label }}</small>{% endif %}
+    </div>
+    <form method="post" action="/{{ game.key }}/profile/verify">
+      <button type="submit" class="btn btn-sm">Проверить рейтинг</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/{{ game.key }}/profile">
+    <div class="field">
+      <label>Игровой ник</label>
+      <input type="text" name="nickname" required value="{{ profile.nickname if profile else '' }}">
+    </div>
+
+    <div class="field">
+      <label>{{ game.account_id_label }}</label>
+      <input type="text" name="account_id" placeholder="{{ game.account_id_placeholder }}" value="{{ profile.account_id if profile else '' }}">
+    </div>
+
+    {% if game.region_choices %}
+    <div class="field">
+      <label>Регион</label>
+      <select name="region" required>
+        <option value="">— выберите —</option>
+        {% for r in game.region_choices %}
+        <option value="{{ r }}" {{ 'selected' if profile and profile.region == r else '' }}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="field">
+      <label>{{ game.profile_url_label }}</label>
+      <input type="url" name="profile_url" placeholder="{{ game.profile_url_placeholder }}" value="{{ profile.profile_url if profile else '' }}">
+      <div class="hint">{{ game.profile_url_hint }}</div>
+    </div>
+
+    <div class="field">
+      <label>Рейтинг</label>
+      {% if game.rating_kind == 'numeric' %}
+        <input type="number" name="rating" required min="{{ game.rating_min }}" max="{{ game.rating_max }}"
+               value="{{ profile.rating_raw if profile else '' }}" placeholder="Например, 4200">
+        <div class="hint">MMR, от {{ game.rating_min }} до {{ game.rating_max }}</div>
+      {% else %}
+        <select name="rating" required>
+          <option value="">— выберите —</option>
+          {% for c in game.rating_choices %}
+          <option value="{{ c.key }}" {{ 'selected' if profile and profile.rating_raw == c.key else '' }}>{{ c.label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </div>
+
+    <fieldset>
+      <legend>Предпочитаемые роли</legend>
+      <div class="chip-row">
+        {% for r in game.roles %}
+        <label class="checkbox-row" style="display:inline-flex;">
+          <input type="checkbox" name="preferred_roles" value="{{ r.key }}"
+            {{ 'checked' if profile and r.key in (profile.preferred_roles or []) else '' }}>
+          <span>{{ r.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label>О себе</label>
+      <textarea name="about" placeholder="Например: играю активно по вечерам, ищу задротный саппорт-дуо">{{ profile.about if profile else '' }}</textarea>
+    </div>
+
+    <div class="checkbox-row" style="margin-bottom:16px;">
+      <input type="checkbox" name="is_looking" id="is_looking" value="true" {{ 'checked' if not profile or profile.is_looking else '' }}>
+      <label for="is_looking">Показывать меня в списке свободных агентов (если я не в команде)</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block">Сохранить профиль</button>
+  </form>
+
+  <p style="margin-top:14px;"><small>Как с вами связаться — в <a href="/account">личных данных</a>.</small></p>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Мой кабинет — {{ game.label }}{% endblock %}
+{% block content %}
+<h1>Мой кабинет — {{ game.label }}</h1>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Мой профиль</h3>
+    {% if own_profile %}
+      <p><small>{{ own_profile.nickname }} · {{ game.display_rating(own_profile.rating_raw) }}</small></p>
+      <a href="/{{ game.key }}/profile" class="btn btn-sm">Редактировать профиль</a>
+    {% else %}
+      <p><small>Профиль ещё не заполнен</small></p>
+      <a href="/{{ game.key }}/profile" class="btn btn-sm btn-primary">Заполнить профиль</a>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Моя команда</h3>
+    {% if active_team %}
+      <p><small>{{ active_team.name }}{% if is_captain %} · вы капитан{% endif %}</small></p>
+      <a href="/{{ game.key }}/teams/{{ active_team.id }}" class="btn btn-sm">Открыть команду</a>
+    {% else %}
+      <p><small>Вы пока не в команде</small></p>
+      <a href="/{{ game.key }}/teams" class="btn btn-sm">Найти команду</a>
+      <a href="/{{ game.key }}/teams/new" class="btn btn-sm">Создать команду</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if my_invites %}
+<h2>Приглашения от команд <span class="badge-count">{{ my_invites|length }}</span></h2>
+<div class="stack">
+  {% for inv in my_invites %}
+  {% set r = game.role_by_key(inv.role) %}
+  <div class="card card-tight row-between">
+    <div>
+      <a href="/{{ game.key }}/teams/{{ inv.team_id }}"><strong>{{ inv.team.name }}</strong></a>
+      <div><small>зовут на роль {{ r.label if r else inv.role }} · {{ inv.created_at|timeago }}</small></div>
+      {% if inv.message %}<p style="margin:6px 0 0;">{{ inv.message }}</p>{% endif %}
+    </div>
+    <div class="row" style="flex-shrink:0;">
+      <form method="post" action="/invites/{{ inv.id }}/accept"><button class="btn btn-sm btn-primary">Принять</button></form>
+      <form method="post" action="/invites/{{ inv.id }}/decline"><button class="btn btn-sm">Отклонить</button></form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if is_captain %}
+<h2>Входящие заявки {% if incoming %}<span class="badge-count">{{ incoming|length }}</span>{% endif %}</h2>
+{% if not incoming %}
+  <p class="empty">Заявок пока нет.</p>
+{% else %}
+<div class="stack">
+  {% for item in incoming %}
+  <div class="card card-tight">
+    <div class="row-between">
+      <div>
+        <strong>{{ item.profile.nickname if item.profile else item.user.email }}</strong>
+        {% if item.profile %}<span class="pill pill-verify-{{ item.profile.verify_status }}">{% if item.profile.verify_status == 'ok' %}✓ проверен{% elif item.profile.verify_status == 'mismatch' %}⚠ расхождение{% else %}не проверен{% endif %}</span>{% endif %}
+        <div><small>{{ game.display_rating(item.profile.rating_raw) if item.profile else '' }} · роли: {{ item.app.roles|map('upper')|join(', ') }}</small></div>
+        <div><small>Связь: {{ item.user.contact_note or 'не указана' }}</small></div>
+        {% if item.app.message %}<p style="margin:8px 0 0;">{{ item.app.message }}</p>{% endif %}
+        {% if item.profile and item.profile.profile_url %}<small><a href="{{ item.profile.profile_url }}" target="_blank" rel="noopener">Профиль игрока →</a></small>{% endif %}
+      </div>
+      <div class="row" style="flex-shrink:0;">
+        <form method="post" action="/applications/{{ item.app.id }}/accept"><button class="btn btn-sm btn-primary">Принять</button></form>
+        <form method="post" action="/applications/{{ item.app.id }}/reject"><button class="btn btn-sm btn-danger">Отклонить</button></form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<h2>Мои заявки</h2>
+{% if not outgoing %}
+  <p class="empty">Вы пока никуда не подавали заявки.</p>
+{% else %}
+<div class="stack">
+  {% for a in outgoing %}
+  <div class="card card-tight row-between">
+    <div>
+      <a href="/{{ game.key }}/teams/{{ a.team_id }}"><strong>{{ a.team.name }}</strong></a>
+      <div><small>роли: {{ a.roles|map('upper')|join(', ') }} · {{ a.created_at|timeago }}</small></div>
+    </div>
+    <div>
+      <span class="pill">
+        {% if a.status == 'pending' %}на рассмотрении
+        {% elif a.status == 'accepted' %}принята
+        {% elif a.status == 'rejected' %}отклонена
+        {% elif a.status == 'withdrawn' %}отозвана
+        {% elif a.status == 'auto_withdrawn' %}отозвана автоматически
+        {% endif %}
+      </span>
+      {% if a.status == 'pending' %}
+      <form method="post" action="/applications/{{ a.id }}/withdraw" style="display:inline;">
+        <button class="btn btn-sm">Отозвать</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

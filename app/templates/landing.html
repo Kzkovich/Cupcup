@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}AlfaCyberCup — собери команду{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>AlfaCyberCup</h1>
+  <p>Собери команду на турнир или найди себе место в уже собирающейся. Dota 2 и League of Legends — отдельно друг от друга.</p>
+</div>
+
+<div class="card-grid">
+  {% for gkey, gcfg in GAMES.items() %}
+  <div class="card">
+    <h2>{{ gcfg.label }}</h2>
+    <p><small>{{ gcfg.roster_size }} человек в команде · {{ gcfg.roles|length }} ролей</small></p>
+    <div class="hero-actions" style="justify-content:flex-start;">
+      <a href="/{{ gkey }}/teams/new" class="btn btn-primary">Создать команду</a>
+      <a href="/{{ gkey }}/teams" class="btn">Найти команду</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Забыли пароль{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;margin:0 auto;">
+  <h1>Восстановление по коду</h1>
+  <p><small>Введите почту и код восстановления, который вы сохранили при регистрации.</small></p>
+  <form method="post" action="/auth/forgot">
+    <div class="field">
+      <label>Почта</label>
+      <input type="email" name="email" required value="{{ form.email if form else '' }}">
+    </div>
+    <div class="field">
+      <label>Код восстановления</label>
+      <input type="text" name="code" required placeholder="ABCD-EFGH-JKMN">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Проверить код</button>
+  </form>
+  <p style="margin-top:14px;"><small>Код потеряли? <a href="/auth/cant-login">Напишите организаторам</a></small></p>
+</div>
+{% endblock %}
