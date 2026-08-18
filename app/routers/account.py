@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.deps import require_user
+from app.deps import get_last_game, require_user
 from app.flash import flash
 from app.models import User
 from app.telegram_bot import deep_link, generate_link_code
@@ -18,7 +18,10 @@ router = APIRouter(tags=["account"])
 @router.get("/account")
 def account_form(request: Request, user: User = Depends(require_user)):
     tg_link = request.session.pop("tg_link", None)
-    return render(request, "account.html", user=user, game=None, telegram_enabled=get_settings().telegram_enabled, tg_link=tg_link)
+    return render(
+        request, "account.html", user=user, game=get_last_game(request),
+        telegram_enabled=get_settings().telegram_enabled, tg_link=tg_link,
+    )
 
 
 @router.post("/account")
@@ -33,7 +36,7 @@ def account_submit(
 
     if (display_name or phone) and not consent_152fz:
         flash(request, "Чтобы сохранить имя/телефон, нужно согласие на обработку персональных данных", "error")
-        return render(request, "account.html", status_code=400, user=user, game=None)
+        return render(request, "account.html", status_code=400, user=user, game=get_last_game(request))
 
     user.display_name = display_name or None
     user.phone = phone or None

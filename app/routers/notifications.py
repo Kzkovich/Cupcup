@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import require_user
+from app.deps import get_last_game, require_user
 from app.models import Notification, User
 from app.notify import describe
 from app.templating import render
@@ -30,4 +30,4 @@ def notifications_list(request: Request, db: Session = Depends(get_db), user: Us
         )
         db.commit()
 
-    return render(request, "notifications.html", user=user, game=None, rows=rows, notif_unread_count=0)
+    return render(request, "notifications.html", user=user, game=get_last_game(request), rows=rows, notif_unread_count=0)

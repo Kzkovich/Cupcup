@@ -4,6 +4,7 @@
 <h1>Заявки на сброс доступа</h1>
 <div class="row" style="margin-bottom:18px;">
   {% for gkey, gcfg in GAMES.items() %}<a href="/admin/{{ gkey }}" class="btn btn-sm">Админка {{ gcfg.label }}</a>{% endfor %}
+  <a href="/admin/admins" class="btn btn-sm">Администраторы</a>
 </div>
 
 {% if issued_link %}

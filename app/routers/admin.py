@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_game_ctx, require_admin
+from app.deps import get_game_ctx, get_last_game, require_admin
 from app.flash import flash
 from app.games.base import GameConfig
 from app.models import Application, GameProfile, ResetRequest, ResetToken, Team, TeamSlot, User
@@ -50,7 +50,7 @@ def admin_reset_requests(request: Request, db: Session = Depends(get_db), user: 
 
     issued_link = request.session.pop("issued_reset_link", None)
     return render(
-        request, "admin/reset_requests.html", user=user, game=None,
+        request, "admin/reset_requests.html", user=user, game=get_last_game(request),
         pending=pending, q=q, found_users=found_users, issued_link=issued_link,
     )
 
@@ -91,6 +91,41 @@ def admin_issue_reset_link(
     request.session["issued_reset_link"] = {"email": target.email, "link": link}
     flash(request, "Ссылка сгенерирована — скопируйте и отправьте игроку", "success")
     return RedirectResponse(url="/admin/reset-requests", status_code=303)
+
+
+@router.get("/admins")
+def admin_admins(request: Request, db: Session = Depends(get_db), user: User = Depends(require_admin), q: str = ""):
+    admins = db.query(User).filter(User.is_admin == True).order_by(User.email).all()  # noqa: E712
+    found_users = []
+    if q:
+        found_users = (
+            db.query(User)
+            .filter(User.email.ilike(f"%{q}%") | User.display_name.ilike(f"%{q}%"))
+            .filter(User.is_admin == False)  # noqa: E712
+            .limit(20)
+            .all()
+        )
+    return render(
+        request, "admin/admins.html", user=user, game=get_last_game(request),
+        admins=admins, q=q, found_users=found_users,
+    )
+
+
+@router.post("/users/{target_user_id}/toggle-admin")
+def admin_toggle_admin(
+    request: Request, target_user_id: int, db: Session = Depends(get_db), user: User = Depends(require_admin),
+):
+    target = db.get(User, target_user_id)
+    if not target:
+        raise HTTPException(status_code=404)
+    if target.id == user.id:
+        flash(request, "Нельзя снять права администратора с самого себя", "error")
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    target.is_admin = not target.is_admin
+    db.commit()
+    flash(request, f"{target.email}: {'выдали права администратора' if target.is_admin else 'сняли права администратора'}", "success")
+    return RedirectResponse(url="/admin/admins", status_code=303)
 
 
 # --- маршруты по конкретной дисциплине (/admin/{game}/...) ---

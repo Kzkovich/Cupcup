@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Администраторы — админка{% endblock %}
+{% block content %}
+<h1>Администраторы</h1>
+<div class="row" style="margin-bottom:18px;">
+  {% for gkey, gcfg in GAMES.items() %}<a href="/admin/{{ gkey }}" class="btn btn-sm">Админка {{ gcfg.label }}</a>{% endfor %}
+  <a href="/admin/reset-requests" class="btn btn-sm">Заявки на сброс</a>
+</div>
+
+<div class="card">
+  <h3>Сейчас с правами админа</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Почта</th><th>Имя</th><th></th></tr>
+      {% for a in admins %}
+      <tr>
+        <td>{{ a.email }}{% if a.id == user.id %} <small>(это вы)</small>{% endif %}</td>
+        <td>{{ a.display_name or '—' }}</td>
+        <td>
+          {% if a.id != user.id %}
+          <form method="post" action="/admin/users/{{ a.id }}/toggle-admin" data-confirm="Снять права администратора у {{ a.email }}?">
+            <button class="btn btn-sm btn-danger">Снять права</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Выдать права администратора</h3>
+  <p><small>Человек должен сначала сам зарегистрироваться на сайте — ищите его здесь по почте или имени.</small></p>
+  <form method="get" action="/admin/admins" class="filters">
+    <div class="field" style="flex:1;"><label>Почта или имя</label><input type="text" name="q" value="{{ q }}"></div>
+    <button type="submit" class="btn">Найти</button>
+  </form>
+
+  {% if q %}
+    {% if not found_users %}
+      <p class="empty">Никого не нашли — попросите человека сначала зарегистрироваться.</p>
+    {% else %}
+    <div class="table-wrap">
+      <table>
+        <tr><th>Почта</th><th>Имя</th><th></th></tr>
+        {% for u in found_users %}
+        <tr>
+          <td>{{ u.email }}</td>
+          <td>{{ u.display_name or '—' }}</td>
+          <td>
+            <form method="post" action="/admin/users/{{ u.id }}/toggle-admin">
+              <button class="btn btn-sm btn-primary">Выдать права</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
