@@ -1,0 +1,34 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Публичный host key сервера — не секрет, зафиксирован здесь,
+          # чтобы деплой не был уязвим к MITM (без него пришлось бы
+          # отключать проверку хоста).
+          echo "194.59.221.90 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDZhdrzJ0ktSpWkveOd31no+WbOB7IXXXY2eOTnnDTIN" > ~/.ssh/known_hosts
+
+      - name: Run deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts deploy@194.59.221.90
+        # Пользователь deploy на сервере может выполнить по этому ключу
+        # только один forced-command — /opt/alfacybercup/deploy/deploy.sh
+        # (git pull + миграции + restart systemd-сервиса). Что бы мы тут
+        # ни передавали в ssh, сервер всё равно выполнит только его.
