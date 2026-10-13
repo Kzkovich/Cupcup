@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ team.name }} — {{ game.label }}{% endblock %}
 {% block content %}
-<div class="row-between">
+<div class="row-between page-heading">
   <div>
+    <span class="eyebrow">СОСТАВ / {{ game.label|upper }}</span>
     <h1 style="margin-bottom:2px;">{{ team.name }}{% if team.tag %} <small>[{{ team.tag }}]</small>{% endif %}</h1>
     <span class="pill pill-status-{{ team.status }}">
       {% if team.status == 'recruiting' %}идёт набор{% elif team.status == 'full' %}состав собран{% elif team.status == 'locked' %}набор приостановлен{% elif team.status == 'disbanded' %}расформирована{% endif %}

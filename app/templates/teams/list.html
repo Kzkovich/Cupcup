@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Команды — {{ game.label }}{% endblock %}
 {% block content %}
-<div class="row-between">
-  <h1>Команды — {{ game.label }}</h1>
+<div class="row-between page-heading">
+  <div><span class="eyebrow">ПОДБОР КОМАНДЫ / {{ game.label|upper }}</span><h1>Команды <span class="heading-accent">{{ game.label }}</span></h1><p>Найди состав, которому нужен именно ты.</p></div>
   <a href="/{{ game.key }}/teams/new" class="btn btn-primary">+ Создать команду</a>
 </div>
 
@@ -58,9 +58,10 @@
   <a href="/{{ game.key }}/teams/new" class="btn btn-primary">Стать первой командой</a>
 </div>
 {% else %}
-<div class="card-grid">
+<div class="card-grid team-grid">
   {% for row in rows %}
-  <a class="card" href="/{{ game.key }}/teams/{{ row.team.id }}" style="display:block;color:inherit;">
+  <a class="card team-card" href="/{{ game.key }}/teams/{{ row.team.id }}">
+    <span class="team-card-index">{{ '%02d'|format(loop.index) }} / {{ game.label|upper }}</span>
     <div class="row-between">
       <h3 style="margin:0;">{{ row.team.name }}{% if row.team.tag %} <small>[{{ row.team.tag }}]</small>{% endif %}</h3>
       <span class="pill pill-status-{{ row.team.status }}">

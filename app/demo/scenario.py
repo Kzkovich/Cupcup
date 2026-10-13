@@ -485,7 +485,7 @@ def run() -> list[Step]:
             demo_counts_total() == counts["users_total"] + counts["teams_total"], demo_counts_total())
 
     public = anon.get("/dota2/teams").text
-    R.check("Демо-команды видны посетителям в списке команд", public.count('class="card"') > 8)
+    R.check("Демо-команды видны посетителям в списке команд", public.count('class="card team-card"') > 8)
     R.check("Демо-игроки видны в свободных агентах", anon.get("/dota2/agents").text.count('class="card"') > 5)
     lower = (public + anon.get("/dota2/agents").text + anon.get("/lol/teams").text).lower()
     R.check("Служебная метка демо-данных не просачивается в публичный HTML",

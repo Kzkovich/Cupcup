@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block title %}AlfaCyberCup{% endblock %}</title>
+  <title>{% block title %}Альфа Геймерс Клаб{% endblock %}</title>
   <link rel="stylesheet" href="/static/css/main.css">
   <meta name="robots" content="noindex">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/">Alfa<span>Cyber</span>Cup</a>
+      <a class="brand" href="/" aria-label="Альфа Геймерс Клаб — главная"><span class="brand-symbol" aria-hidden="true">А</span><span class="brand-copy">АЛЬФА<span>ГЕЙМЕРС КЛАБ</span></span></a>
 
       {% if game %}
       <nav class="game-switch">
@@ -22,7 +22,7 @@
 
       <nav class="nav-links">
         {% if game %}
-          <a href="/{{ game.key }}/teams">Команды</a>
+          <a href="/{{ game.key }}/teams">Найти команду</a>
           <a href="/{{ game.key }}/agents">Свободные агенты</a>
           {% if user %}<a href="/{{ game.key }}/me">Мой кабинет</a>{% endif %}
         {% endif %}
@@ -57,7 +57,7 @@
   </main>
 
   <footer class="site-footer">
-    <div class="container">AlfaCyberCup · турнир по Dota 2 и League of Legends</div>
+    <div class="container footer-inner"><span>АЛЬФА ГЕЙМЕРС КЛАБ</span><span>Команда начинается здесь.</span></div>
   </footer>
 
   <script src="/static/js/main.js"></script>

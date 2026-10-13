@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Свободные агенты — {{ game.label }}{% endblock %}
 {% block content %}
-<h1>Свободные агенты — {{ game.label }}</h1>
-<p><small>Игроки без команды, которые готовы, чтобы их пригласили.</small></p>
+<div class="page-heading"><span class="eyebrow">ИГРОКИ / {{ game.label|upper }}</span><h1>Свободные агенты</h1><p>Игроки без команды, готовые принять приглашение.</p></div>
 
 <form method="get" class="filters card card-tight">
   <div class="field">
