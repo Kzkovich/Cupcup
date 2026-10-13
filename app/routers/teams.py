@@ -170,6 +170,7 @@ async def team_new_submit(
         game=game.key, name=name, tag=tag or None, captain_id=user.id,
         description=description or None,
         rating_min_wanted=rating_min_wanted, rating_max_wanted=rating_max_wanted,
+        demo_tag=user.demo_tag,
     )
     db.add(team)
     db.flush()

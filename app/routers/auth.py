@@ -154,6 +154,12 @@ def login_submit(
 
 @router.post("/logout")
 def logout(request: Request):
+    impersonator = request.session.get("impersonator_id")
+    if impersonator:
+        # админ смотрел сайт глазами демо-пользователя — «Выйти» возвращает его в свою сессию
+        request.session.pop("impersonator_id", None)
+        request.session["user_id"] = impersonator
+        return RedirectResponse(url="/admin/demo", status_code=303)
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
 

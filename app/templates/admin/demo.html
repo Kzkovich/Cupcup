@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Демо-режим{% endblock %}
+{% block content %}
+<h1>Демо-режим</h1>
+<p><small>Служебная страница. Не отображается в меню и видна только администраторам.</small></p>
+
+<div class="card">
+  <h3>Демо-данные</h3>
+  <p>
+    Сейчас в базе: <strong>{{ counts.users_total }}</strong> тестовых игроков и <strong>{{ counts.teams_total }}</strong> тестовых команд.
+    {% if not counts.users_total %}Сайт выглядит пустым — можно наполнить его правдоподобной «жизнью».{% endif %}
+  </p>
+  <p><small>Тестовые записи помечены служебной меткой и нигде в интерфейсе не подписаны. Настоящих пользователей это не затрагивает.</small></p>
+  <div class="row">
+    <form method="post" action="/admin/demo/seed">
+      <button class="btn btn-primary" {{ 'disabled' if counts.users_total else '' }}>Наполнить демо-данными</button>
+    </form>
+    <form method="post" action="/admin/demo/purge" data-confirm="Удалить ВСЕ тестовые данные (игроков, команды, заявки)? Настоящие данные останутся.">
+      <button class="btn btn-danger" {{ '' if counts.users_total else 'disabled' }}>Удалить все демо-данные</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Проверка всех сценариев</h3>
+  <p><small>Прогоняет сквозной клиентский путь (регистрация → профиль → команда → заявки → приглашения → админка → восстановление доступа) на отдельной временной базе. Реальные данные и посетители этого не видят.</small></p>
+  <form method="post" action="/admin/demo/run"><button class="btn btn-primary">Прогнать сценарий</button></form>
+
+  {% if last_run %}
+  <p style="margin-top:16px;">
+    <strong style="color: {{ 'var(--ok)' if last_run.failed == 0 else 'var(--danger)' }};">
+      {{ last_run.passed }} из {{ last_run.total }} шагов прошли
+    </strong>
+    <small> · {{ last_run.seconds }} с · {{ last_run.at }}</small>
+  </p>
+  <div class="table-wrap">
+  <table>
+    {% set ns = namespace(section='') %}
+    {% for st in last_run.steps %}
+      {% if st.section != ns.section %}
+        {% set ns.section = st.section %}
+        <tr><th colspan="2" style="padding-top:14px;">{{ st.section }}</th></tr>
+      {% endif %}
+      <tr>
+        <td style="width:28px;color: {{ 'var(--ok)' if st.ok else 'var(--danger)' }};">{{ '✓' if st.ok else '✗' }}</td>
+        <td>{{ st.name }}{% if not st.ok and st.detail %}<br><small style="color:var(--danger);">{{ st.detail }}</small>{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Посмотреть глазами пользователя</h3>
+  <p><small>Войти под демо-аккаунтом, чтобы показать функции «изнутри». Кнопка «Выйти» вернёт вас в админку. Под настоящими пользователями зайти нельзя.</small></p>
+  {% if not personas %}
+    <p class="empty">Сначала наполните демо-данными.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table>
+    {% for p in personas %}
+    <tr>
+      <td><span class="pill">{{ p.game_label }}</span></td>
+      <td>{{ p.label }}<br><small>{{ p.nick }}</small></td>
+      <td>
+        <form method="post" action="/admin/demo/impersonate/{{ p.user_id }}">
+          <input type="hidden" name="game" value="{{ p.game }}">
+          <button class="btn btn-sm">Войти как</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

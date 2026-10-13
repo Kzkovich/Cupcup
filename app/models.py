@@ -28,6 +28,10 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     banned_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    # Служебная метка тестовых/демо-записей (NULL = настоящий пользователь).
+    # Нигде не показывается в интерфейсе; по ней демо-данные удаляются одним махом.
+    demo_tag: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -85,6 +89,8 @@ class Team(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     bumped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    demo_tag: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
 
     captain: Mapped["User"] = relationship()
     slots: Mapped[list["TeamSlot"]] = relationship(back_populates="team", cascade="all, delete-orphan", order_by="TeamSlot.id")

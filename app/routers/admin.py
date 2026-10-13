@@ -1,16 +1,24 @@
 import csv
 import io
+import json
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_game_ctx, get_last_game, require_admin
 from app.flash import flash
+from app.demo.purge import demo_counts, purge_demo
+from app.demo.scenario_runner import run_isolated
+from app.demo.seed import AlreadySeeded, seed_demo
+from app.games import GAMES
 from app.games.base import GameConfig
-from app.models import Application, GameProfile, ResetRequest, ResetToken, Team, TeamSlot, User
+from app.models import (
+    Application, GameProfile, Invite, ResetRequest, ResetToken, Setting, Team, TeamSlot, User,
+)
 from app.roster import build_roster_view, team_avg_rating_label
 from app.security import generate_reset_token, hash_token
 from app.templating import render
@@ -126,6 +134,117 @@ def admin_toggle_admin(
     db.commit()
     flash(request, f"{target.email}: {'выдали права администратора' if target.is_admin else 'сняли права администратора'}", "success")
     return RedirectResponse(url="/admin/admins", status_code=303)
+
+
+# --- демо-режим: страница не прописана в навигации, открывается по прямому адресу /admin/demo ---
+
+def _personas(db: Session) -> list[dict]:
+    """Несколько готовых демо-аккаунтов, под которыми админ может пройти клиентский путь."""
+    out: list[dict] = []
+
+    def nick(user_id: int, game: str) -> str:
+        p = db.query(GameProfile).filter(GameProfile.user_id == user_id, GameProfile.game == game).first()
+        return p.nickname if p else f"#{user_id}"
+
+    for gk, g in GAMES.items():
+        busy = {uid for (uid,) in db.query(TeamSlot.user_id).join(Team, Team.id == TeamSlot.team_id)
+                .filter(TeamSlot.state == "filled", Team.game == gk, Team.status != "disbanded").all()}
+
+        row = (
+            db.query(Team, func.count(Application.id))
+            .join(Application, Application.team_id == Team.id)
+            .filter(Team.demo_tag.isnot(None), Team.game == gk, Application.status == "pending")
+            .group_by(Team.id).order_by(func.count(Application.id).desc()).first()
+        )
+        if row:
+            out.append({"game": gk, "game_label": g.label, "label": f"Капитан «{row[0].name}» — {row[1]} заявк. ждут решения",
+                        "user_id": row[0].captain_id, "nick": nick(row[0].captain_id, gk)})
+
+        inv = (
+            db.query(Invite).join(Team, Team.id == Invite.team_id)
+            .filter(Invite.status == "pending", Team.game == gk, Team.demo_tag.isnot(None)).first()
+        )
+        if inv:
+            out.append({"game": gk, "game_label": g.label, "label": f"Игрок, которого пригласили в «{inv.team.name}»",
+                        "user_id": inv.user_id, "nick": nick(inv.user_id, gk)})
+
+        agent = next(
+            (p for p in db.query(GameProfile).join(User, User.id == GameProfile.user_id)
+             .filter(GameProfile.game == gk, GameProfile.is_looking.is_(True), User.demo_tag.isnot(None))
+             .order_by(GameProfile.rating_ordinal.desc()).all() if p.user_id not in busy), None)
+        if agent:
+            out.append({"game": gk, "game_label": g.label, "label": "Свободный игрок без команды (ищет, подаёт заявки)",
+                        "user_id": agent.user_id, "nick": agent.nickname})
+    return out
+
+
+def _last_run(db: Session) -> dict | None:
+    row = db.get(Setting, "demo_last_run")
+    if not row:
+        return None
+    try:
+        return json.loads(row.value)
+    except ValueError:
+        return None
+
+
+@router.get("/demo")
+def admin_demo(request: Request, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    return render(
+        request, "admin/demo.html", user=user, game=get_last_game(request),
+        counts=demo_counts(db), personas=_personas(db), last_run=_last_run(db),
+    )
+
+
+@router.post("/demo/seed")
+def admin_demo_seed(request: Request, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    try:
+        res = seed_demo(db)
+        flash(request, f"Демо-данные созданы: {res['users']} игроков, {res['teams']} команд, "
+                       f"{res['applications']} заявок, {res['invites']} приглашений", "success")
+    except AlreadySeeded as e:
+        flash(request, str(e), "info")
+    return RedirectResponse(url="/admin/demo", status_code=303)
+
+
+@router.post("/demo/purge")
+def admin_demo_purge(request: Request, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    res = purge_demo(db)
+    flash(request, f"Удалено: {res['users']} игроков, {res['teams']} команд, {res['applications']} заявок, "
+                   f"{res['invites']} приглашений, {res['notifications']} уведомлений. Настоящие данные не тронуты.",
+          "success")
+    return RedirectResponse(url="/admin/demo", status_code=303)
+
+
+@router.post("/demo/run")
+def admin_demo_run(request: Request, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    db.rollback()  # не держим транзакцию, пока сценарий работает в отдельном процессе
+    report = run_isolated()
+    report["at"] = datetime.utcnow().strftime("%d.%m.%Y %H:%M UTC")
+    row = db.get(Setting, "demo_last_run")
+    payload = json.dumps(report, ensure_ascii=False)
+    if row:
+        row.value = payload
+    else:
+        db.add(Setting(key="demo_last_run", value=payload))
+    db.commit()
+    flash(request, f"Сценарий прогнан: {report['passed']} из {report['total']} шагов прошли",
+          "success" if report["failed"] == 0 else "error")
+    return RedirectResponse(url="/admin/demo", status_code=303)
+
+
+@router.post("/demo/impersonate/{target_id}")
+def admin_demo_impersonate(
+    request: Request, target_id: int, db: Session = Depends(get_db),
+    user: User = Depends(require_admin), game: str = Form("dota2"),
+):
+    target = db.get(User, target_id)
+    if not target or target.demo_tag is None:
+        # заходить можно только под демо-аккаунтами, под настоящими людьми — никогда
+        raise HTTPException(status_code=404)
+    request.session["impersonator_id"] = user.id
+    request.session["user_id"] = target.id
+    return RedirectResponse(url=f"/{game if game in GAMES else 'dota2'}/me", status_code=303)
 
 
 # --- маршруты по конкретной дисциплине (/admin/{game}/...) ---

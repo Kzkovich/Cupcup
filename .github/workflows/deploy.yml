@@ -1,18 +1,44 @@
-name: Deploy to production
+name: Test & deploy
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch: {}
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      # Сквозной сценарий + юнит-тесты + проверка, что миграции совпадают с моделями.
+      # Работает на временной БД, к проду не обращается.
+      - name: Run tests
+        run: python -m pytest -q
+
   deploy:
+    # Деплоим только то, что уже попало в main и прошло тесты. На PR — только тесты.
+    needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     steps:
       - name: Configure SSH
         run: |
@@ -21,14 +47,20 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           # Публичный host key сервера — не секрет, зафиксирован здесь,
-          # чтобы деплой не был уязвим к MITM (без него пришлось бы
-          # отключать проверку хоста).
+          # чтобы деплой не был уязвим к MITM.
           echo "194.59.221.90 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDZhdrzJ0ktSpWkveOd31no+WbOB7IXXXY2eOTnnDTIN" > ~/.ssh/known_hosts
 
       - name: Run deploy on server
         run: |
           ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts deploy@194.59.221.90
-        # Пользователь deploy на сервере может выполнить по этому ключу
-        # только один forced-command — /opt/alfacybercup/deploy/deploy.sh
-        # (git pull + миграции + restart systemd-сервиса). Что бы мы тут
-        # ни передавали в ssh, сервер всё равно выполнит только его.
+        # Пользователь deploy на сервере может выполнить по этому ключу только
+        # forced-command — /opt/alfacybercup/deploy/deploy.sh (git pull + миграции + restart).
+
+      - name: Smoke check
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://cup.kzkovich.ru/healthz || true)
+            [ "$code" = "200" ] && echo "healthz OK" && exit 0
+            sleep 3
+          done
+          echo "healthz не ответил 200 после деплоя" && exit 1
