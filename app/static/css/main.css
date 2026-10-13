@@ -428,3 +428,59 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .slot { flex-wrap: wrap; }
   .slot > .row { width: 100%; padding-left: 44px; }
 }
+
+/* Clickable player and team directories */
+.directory-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: 2px 0 18px; }
+.directory-count { color: var(--text-dim); font-size: .86rem; font-weight: 700; }
+.view-switch { display: inline-flex; gap: 3px; padding: 3px; background: #dedbd6; border-radius: 5px; }
+.view-switch a { color: var(--text); padding: 7px 12px; border-radius: 3px; font-size: .82rem; font-weight: 700; }
+.view-switch a.active { background: #fff; box-shadow: 2px 3px 0 var(--accent); }
+.view-switch a:hover { color: var(--accent-hover); }
+.player-grid { grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
+.player-card, .team-card { position: relative; color: var(--text); }
+.player-card { min-height: 230px; border-radius: 10px; box-shadow: 5px 6px 0 rgba(239,49,36,.8), 8px 12px 18px rgba(21,21,21,.1); transition: transform .18s ease, box-shadow .18s ease; }
+.player-card:hover { color: var(--text); transform: translateY(-4px) rotate(-.5deg); box-shadow: 7px 10px 0 var(--accent), 10px 18px 20px rgba(21,21,21,.14); }
+.directory-card-index { display: block; margin-bottom: 20px; color: var(--accent); font-weight: 900; font-size: .7rem; letter-spacing: .13em; }
+.directory-card-main h3 { margin: 0; overflow-wrap: anywhere; }
+.directory-card-meta { margin: 8px 0; color: var(--text-dim); font-size: .9rem; }
+.directory-card-description { margin: 8px 0; color: var(--text-dim); font-size: .88rem; overflow-wrap: anywhere; }
+.directory-card-date { color: var(--text-dimmer); }
+.directory-card-open { display: inline-flex; align-items: center; gap: 7px; margin-top: 17px; color: var(--accent-hover); font-size: .8rem; font-weight: 900; }
+.directory-card-open span { font-size: 1rem; }
+.directory-list { grid-template-columns: 1fr; gap: 14px; }
+.directory-list .team-card, .directory-list .player-card { min-height: 0; display: grid; grid-template-columns: 125px minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 18px 24px; margin-bottom: 0; }
+.directory-list .team-card-index, .directory-list .directory-card-index { margin-bottom: 0; }
+.directory-list .directory-card-main { min-width: 0; }
+.directory-list .directory-card-main .chip-row { margin-top: 6px; }
+.directory-list .directory-card-description, .directory-list .directory-card-date { display: none; }
+.directory-list .directory-card-open { white-space: nowrap; margin-top: 0; }
+
+.back-link { display: inline-block; margin-bottom: 20px; font-weight: 700; }
+.player-detail-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr); gap: 24px; align-items: start; }
+.player-detail-card, .player-invite-card { border-radius: 12px; box-shadow: 7px 8px 0 var(--accent), 11px 16px 24px rgba(21,21,21,.12); }
+.player-detail-card { padding: clamp(24px, 4vw, 42px); }
+.player-detail-heading { gap: 14px; margin: 12px 0 25px; }
+.player-detail-heading h1 { margin: 0; overflow-wrap: anywhere; }
+.player-detail-card h2 { font-size: 1.1rem; margin: 24px 0 10px; }
+.player-detail-rating { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; padding: 18px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.player-detail-rating > span { font-size: .72rem; font-weight: 900; letter-spacing: .14em; }
+.player-detail-rating strong { color: var(--accent); font-size: 1.65rem; line-height: 1.1; }
+.player-about { white-space: pre-wrap; overflow-wrap: anywhere; }
+.profile-external { display: inline-block; margin-top: 16px; font-weight: 700; }
+.player-invite-card h2 { margin-top: 10px; }
+.player-invite-card p { color: var(--text-dim); }
+.player-invite-card .btn { justify-content: center; }
+
+@media (max-width: 800px) {
+  .player-detail-layout { grid-template-columns: 1fr; }
+  .directory-list .team-card, .directory-list .player-card { grid-template-columns: 95px minmax(0, 1fr); }
+  .directory-list .directory-card-open { grid-column: 2; }
+}
+@media (max-width: 560px) {
+  .directory-list .team-card, .directory-list .player-card { display: block; padding: 18px; }
+  .directory-list .team-card-index, .directory-list .directory-card-index { margin-bottom: 12px; }
+  .directory-list .directory-card-open { margin-top: 12px; }
+  .directory-toolbar { align-items: flex-start; }
+  .view-switch a { padding: 6px 8px; }
+  .player-detail-heading { align-items: flex-start; }
+}

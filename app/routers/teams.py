@@ -63,6 +63,7 @@ def team_list(
     request: Request, db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user), game: GameConfig = Depends(get_game_ctx),
     role: str = "", rating_min: str = "", rating_max: str = "", open_only: bool = False,
+    view: str = "grid",
 ):
     teams = (
         db.query(Team)
@@ -84,10 +85,10 @@ def team_list(
             continue
         if max_ord is not None and team.rating_min_wanted is not None and team.rating_min_wanted > max_ord:
             continue
-        view = build_roster_view(db, team, game)
+        roster_view = build_roster_view(db, team, game)
         rows.append({
             "team": team,
-            "avg_label": team_avg_rating_label(view, game),
+            "avg_label": team_avg_rating_label(roster_view, game),
             "open_roles": [game.role_by_key(r) for r in team.open_roles],
         })
 
@@ -99,7 +100,7 @@ def team_list(
     return render(
         request, "teams/list.html", user=user, game=game, rows=rows,
         role=role, rating_min=rating_min, rating_max=rating_max, open_only=open_only,
-        my_active_team=my_active_team,
+        my_active_team=my_active_team, view_mode="list" if view == "list" else "grid",
     )
 
 

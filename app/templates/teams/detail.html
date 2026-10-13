@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ team.name }} — {{ game.label }}{% endblock %}
 {% block content %}
+<a href="/{{ game.key }}/teams" class="back-link">← Все команды</a>
 <div class="row-between page-heading">
   <div>
     <span class="eyebrow">СОСТАВ / {{ game.label|upper }}</span>

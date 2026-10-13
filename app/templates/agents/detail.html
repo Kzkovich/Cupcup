@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.nickname }} — ищет команду в {{ game.label }}{% endblock %}
+{% block content %}
+<a href="/{{ game.key }}/agents" class="back-link">← Все игроки</a>
+<div class="player-detail-layout">
+  <section class="card player-detail-card">
+    <span class="eyebrow">ИГРОК / {{ game.label|upper }}</span>
+    <div class="row-between player-detail-heading">
+      <h1>{{ profile.nickname }}</h1>
+      <span class="pill pill-open">ищет команду</span>
+    </div>
+    <div class="player-detail-rating">
+      <span>РЕЙТИНГ</span>
+      <strong>{{ game.display_rating(profile.rating_raw) }}</strong>
+      {% if profile.verify_status == 'ok' %}<small>✓ подтверждён</small>{% elif profile.verify_status == 'mismatch' %}<small>⚠ есть расхождение при проверке</small>{% endif %}
+    </div>
+    {% if profile.region %}<p><strong>Регион:</strong> {{ profile.region }}</p>{% endif %}
+    {% if profile.preferred_roles %}
+      <h2>Предпочитаемые роли</h2>
+      <div class="chip-row">{% for rk in profile.preferred_roles %}{% set r = game.role_by_key(rk) %}{% if r %}<span class="pill">{{ r.label }}</span>{% endif %}{% endfor %}</div>
+    {% endif %}
+    {% if profile.about %}<h2>О себе</h2><p class="player-about">{{ profile.about }}</p>{% endif %}
+    {% if profile.profile_url and (profile.profile_url[:8] == 'https://' or profile.profile_url[:7] == 'http://') %}<a href="{{ profile.profile_url }}" target="_blank" rel="noopener noreferrer" class="profile-external">Игровой профиль ↗</a>{% endif %}
+  </section>
+
+  <aside class="card player-invite-card">
+    <span class="eyebrow">ИГРАТЬ ВМЕСТЕ</span>
+    {% if my_team and pending_invite %}
+      <h2>Приглашение отправлено</h2>
+      <p>Ждём ответа игрока для команды «{{ my_team.name }}».</p>
+    {% elif my_team and my_open_roles %}
+      <h2>Пригласить в команду</h2>
+      <p>Предложите игроку свободную роль в «{{ my_team.name }}». Приглашение появится у него на сайте.</p>
+      <form method="post" action="/{{ game.key }}/agents/{{ profile.user_id }}/invite" class="stack">
+        <label for="invite-role">Роль</label>
+        <select id="invite-role" name="role" required>{% for r in my_open_roles %}<option value="{{ r.key }}">{{ r.label }}</option>{% endfor %}</select>
+        <label for="invite-message">Сообщение (необязательно)</label>
+        <textarea id="invite-message" name="message" placeholder="Расскажите немного о команде"></textarea>
+        <button type="submit" class="btn btn-primary">Отправить приглашение</button>
+      </form>
+    {% elif my_team %}
+      <h2>Все роли заняты</h2><p>Откройте свободный слот в своей команде, чтобы пригласить игрока.</p>
+      <a href="/{{ game.key }}/teams/{{ my_team.id }}" class="btn">Открыть команду</a>
+    {% elif user %}
+      <h2>Нужна своя команда?</h2><p>Создайте состав, чтобы отправлять игрокам приглашения прямо на сайте.</p>
+      <a href="/{{ game.key }}/teams/new" class="btn btn-primary">Создать команду</a>
+    {% else %}
+      <h2>Хотите пригласить игрока?</h2><p>Войдите и создайте команду. Телефон и почта игрока здесь не публикуются.</p>
+      <a href="/auth/login?next=/{{ game.key }}/agents/{{ profile.user_id }}" class="btn btn-primary">Войти</a>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

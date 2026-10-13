@@ -13,6 +13,7 @@
 {% endif %}
 
 <form method="get" class="filters card card-tight">
+  <input type="hidden" name="view" value="{{ view_mode }}">
   <div class="field">
     <label>Моя роль</label>
     <select name="role">
@@ -52,30 +53,41 @@
   {% if role or rating_min or rating_max or open_only %}<a href="/{{ game.key }}/teams" class="btn btn-sm">Сбросить</a>{% endif %}
 </form>
 
+<div class="directory-toolbar">
+  <span class="directory-count">Команд: {{ rows|length }}</span>
+  <div class="view-switch" aria-label="Вид каталога">
+    <a href="{{ request.url.include_query_params(view='grid') }}" class="{{ 'active' if view_mode == 'grid' else '' }}" {% if view_mode == 'grid' %}aria-current="page"{% endif %}>▦ Плитки</a>
+    <a href="{{ request.url.include_query_params(view='list') }}" class="{{ 'active' if view_mode == 'list' else '' }}" {% if view_mode == 'list' %}aria-current="page"{% endif %}>☷ Список</a>
+  </div>
+</div>
+
 {% if not rows %}
 <div class="empty">
   <p>Пока нет команд{% if role or rating_min or rating_max or open_only %} по этим фильтрам{% endif %}.</p>
   <a href="/{{ game.key }}/teams/new" class="btn btn-primary">Стать первой командой</a>
 </div>
 {% else %}
-<div class="card-grid team-grid">
+<div class="card-grid team-grid {{ 'directory-list' if view_mode == 'list' else '' }}">
   {% for row in rows %}
   <a class="card team-card" href="/{{ game.key }}/teams/{{ row.team.id }}">
     <span class="team-card-index">{{ '%02d'|format(loop.index) }} / {{ game.label|upper }}</span>
-    <div class="row-between">
-      <h3 style="margin:0;">{{ row.team.name }}{% if row.team.tag %} <small>[{{ row.team.tag }}]</small>{% endif %}</h3>
-      <span class="pill pill-status-{{ row.team.status }}">
-        {% if row.team.status == 'recruiting' %}набор{% elif row.team.status == 'full' %}собрана{% elif row.team.status == 'locked' %}набор приостановлен{% endif %}
-      </span>
+    <div class="directory-card-main">
+      <div class="row-between">
+        <h3>{{ row.team.name }}{% if row.team.tag %} <small>[{{ row.team.tag }}]</small>{% endif %}</h3>
+        <span class="pill pill-status-{{ row.team.status }}">
+          {% if row.team.status == 'recruiting' %}набор{% elif row.team.status == 'full' %}собрана{% elif row.team.status == 'locked' %}набор приостановлен{% endif %}
+        </span>
+      </div>
+      <p class="directory-card-meta">{{ row.team.filled_count }}/{{ row.team.slots|length }} · средний рейтинг {{ row.avg_label }}</p>
+      {% if row.open_roles %}
+      <div class="chip-row">
+        {% for r in row.open_roles %}<span class="pill pill-open">{{ r.short }} открыт</span>{% endfor %}
+      </div>
+      {% endif %}
+      {% if row.team.description %}<p class="directory-card-description">{{ row.team.description[:120] }}{% if row.team.description|length > 120 %}…{% endif %}</p>{% endif %}
+      <small class="directory-card-date">обновлено {{ row.team.bumped_at|timeago }}</small>
     </div>
-    <p style="margin:8px 0;"><small>{{ row.team.filled_count }}/{{ row.team.slots|length }} · средний рейтинг {{ row.avg_label }}</small></p>
-    {% if row.open_roles %}
-    <div class="chip-row">
-      {% for r in row.open_roles %}<span class="pill pill-open">{{ r.short }} открыт</span>{% endfor %}
-    </div>
-    {% endif %}
-    {% if row.team.description %}<p style="margin-top:8px;color:var(--text-dim);font-size:.88rem;">{{ row.team.description[:120] }}{% if row.team.description|length > 120 %}…{% endif %}</p>{% endif %}
-    <small style="color:var(--text-dimmer);">обновлено {{ row.team.bumped_at|timeago }}</small>
+    <span class="directory-card-open">Открыть команду <span aria-hidden="true">↗</span></span>
   </a>
   {% endfor %}
 </div>

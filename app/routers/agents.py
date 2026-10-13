@@ -13,7 +13,6 @@ from app.membership import join_team
 from app.models import GameProfile, Invite, Team, TeamSlot, User
 from app.notify import notify
 from app.roster import get_active_slot
-from app.routers.teams import get_team_or_404
 from app.templating import render
 
 router = APIRouter(tags=["agents"])
@@ -29,11 +28,21 @@ def _active_user_ids(db: Session, game: GameConfig) -> set[int]:
     return {uid for (uid,) in rows}
 
 
+def _inviting_team(db: Session, user: User | None, game: GameConfig) -> tuple[Team | None, list]:
+    if not user:
+        return None, []
+    slot = get_active_slot(db, user, game)
+    if not slot or slot.team.captain_id != user.id or slot.team.status != "recruiting":
+        return None, []
+    team = slot.team
+    return team, [game.role_by_key(role) for role in team.open_roles]
+
+
 @router.get("/{game}/agents")
 def agents_list(
     request: Request, db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user), game: GameConfig = Depends(get_game_ctx),
-    role: str = "", rating_min: str = "", rating_max: str = "",
+    role: str = "", rating_min: str = "", rating_max: str = "", view: str = "grid",
 ):
     taken = _active_user_ids(db, game)
     q = db.query(GameProfile).filter(GameProfile.game == game.key, GameProfile.is_looking == True)  # noqa: E712
@@ -61,18 +70,38 @@ def agents_list(
 
     profiles.sort(key=lambda p: p.updated_at, reverse=True)
 
-    my_team = None
-    my_open_roles = []
-    if user:
-        slot = get_active_slot(db, user, game)
-        if slot and slot.team.captain_id == user.id and slot.team.status == "recruiting":
-            my_team = slot.team
-            my_open_roles = [game.role_by_key(r) for r in my_team.open_roles]
-
     return render(
         request, "agents/list.html", user=user, game=game, profiles=profiles,
         role=role, rating_min=rating_min, rating_max=rating_max,
-        my_team=my_team, my_open_roles=my_open_roles,
+        view_mode="list" if view == "list" else "grid",
+    )
+
+
+@router.get("/{game}/agents/{target_user_id}")
+def agent_detail(
+    request: Request, target_user_id: int, db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user), game: GameConfig = Depends(get_game_ctx),
+):
+    profile = (
+        db.query(GameProfile)
+        .filter(GameProfile.user_id == target_user_id, GameProfile.game == game.key)
+        .first()
+    )
+    if not profile or not profile.is_looking or target_user_id in _active_user_ids(db, game):
+        raise HTTPException(status_code=404, detail="Игрок не найден")
+
+    my_team, my_open_roles = _inviting_team(db, user, game)
+    pending_invite = None
+    if my_team:
+        pending_invite = (
+            db.query(Invite)
+            .filter(Invite.team_id == my_team.id, Invite.user_id == target_user_id, Invite.status == "pending")
+            .first()
+        )
+
+    return render(
+        request, "agents/detail.html", user=user, game=game, profile=profile,
+        my_team=my_team, my_open_roles=my_open_roles, pending_invite=pending_invite,
     )
 
 
@@ -82,7 +111,7 @@ def invite_agent(
     user: User = Depends(require_user), game: GameConfig = Depends(get_game_ctx),
     role: str = Form(...), message: str = Form(""),
 ):
-    redirect = RedirectResponse(url=f"/{game.key}/agents", status_code=303)
+    redirect = RedirectResponse(url=f"/{game.key}/agents/{target_user_id}", status_code=303)
     slot = get_active_slot(db, user, game)
     if not slot or slot.team.captain_id != user.id:
         flash(request, "Приглашать может только капитан своей команды", "error")
@@ -100,6 +129,14 @@ def invite_agent(
     target_user = db.get(User, target_user_id)
     if not target_user:
         raise HTTPException(status_code=404, detail="Игрок не найден")
+    target_profile = (
+        db.query(GameProfile)
+        .filter(GameProfile.user_id == target_user_id, GameProfile.game == game.key)
+        .first()
+    )
+    if not target_profile or not target_profile.is_looking:
+        flash(request, "Игрок больше не ищет команду", "error")
+        return RedirectResponse(url=f"/{game.key}/agents", status_code=303)
     if get_active_slot(db, target_user, game):
         flash(request, "У этого игрока уже есть команда", "error")
         return redirect

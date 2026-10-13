@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Альфа Геймерс Клаб{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/main.css?v=20261013-2">
+  <link rel="stylesheet" href="/static/css/main.css?v=20261013-3">
   <meta name="robots" content="noindex">
 </head>
 <body>
@@ -23,7 +23,7 @@
       <nav class="nav-links">
         {% if game %}
           <a href="/{{ game.key }}/teams">Найти команду</a>
-          <a href="/{{ game.key }}/agents">Свободные агенты</a>
+          <a href="/{{ game.key }}/agents">Ищут команду</a>
           {% if user %}<a href="/{{ game.key }}/me">Мой кабинет</a>{% endif %}
         {% endif %}
         {% if user %}

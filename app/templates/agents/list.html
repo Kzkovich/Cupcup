@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Свободные агенты — {{ game.label }}{% endblock %}
+{% block title %}Игроки ищут команду — {{ game.label }}{% endblock %}
 {% block content %}
-<div class="page-heading"><span class="eyebrow">ИГРОКИ / {{ game.label|upper }}</span><h1>Свободные агенты</h1><p>Игроки без команды, готовые принять приглашение.</p></div>
+<div class="page-heading"><span class="eyebrow">ИГРОКИ / {{ game.label|upper }}</span><h1>Ищут команду</h1><p>Игроки без состава, готовые принять приглашение.</p></div>
 
 <form method="get" class="filters card card-tight">
+  <input type="hidden" name="view" value="{{ view_mode }}">
   <div class="field">
     <label>Роль</label>
     <select name="role">
@@ -31,36 +32,34 @@
   {% if role or rating_min or rating_max %}<a href="/{{ game.key }}/agents" class="btn btn-sm">Сбросить</a>{% endif %}
 </form>
 
-{% if not profiles %}
-<div class="empty"><p>Свободных агентов по этим фильтрам пока нет.</p></div>
-{% else %}
-<div class="card-grid">
-  {% for p in profiles %}
-  <div class="card">
-    <div class="row-between">
-      <h3 style="margin:0;">{{ p.nickname }}</h3>
-      <span class="pill pill-verify-{{ p.verify_status }}">{% if p.verify_status == 'ok' %}✓{% elif p.verify_status == 'mismatch' %}⚠{% endif %}</span>
-    </div>
-    <p style="margin:6px 0;"><small>{{ game.display_rating(p.rating_raw) }}{% if p.region %} · {{ p.region }}{% endif %}</small></p>
-    {% if p.preferred_roles %}
-    <div class="chip-row">{% for rk in p.preferred_roles %}{% set r = game.role_by_key(rk) %}{% if r %}<span class="pill">{{ r.short }}</span>{% endif %}{% endfor %}</div>
-    {% endif %}
-    {% if p.about %}<p style="margin:8px 0;color:var(--text-dim);font-size:.88rem;">{{ p.about }}</p>{% endif %}
-    {% if p.profile_url %}<p><small><a href="{{ p.profile_url }}" target="_blank" rel="noopener">Профиль игрока →</a></small></p>{% endif %}
-
-    {% if my_team %}
-    <details style="margin-top:8px;">
-      <summary class="btn btn-sm btn-primary" style="display:inline-flex;">Пригласить</summary>
-      <form method="post" action="/{{ game.key }}/agents/{{ p.user_id }}/invite" class="stack" style="margin-top:8px;">
-        <select name="role" required>
-          {% for r in my_open_roles %}<option value="{{ r.key }}">{{ r.label }}</option>{% endfor %}
-        </select>
-        <textarea name="message" placeholder="Короткое сообщение (необязательно)"></textarea>
-        <button type="submit" class="btn btn-sm btn-primary">Отправить приглашение</button>
-      </form>
-    </details>
-    {% endif %}
+<div class="directory-toolbar">
+  <span class="directory-count">Игроков: {{ profiles|length }}</span>
+  <div class="view-switch" aria-label="Вид каталога">
+    <a href="{{ request.url.include_query_params(view='grid') }}" class="{{ 'active' if view_mode == 'grid' else '' }}" {% if view_mode == 'grid' %}aria-current="page"{% endif %}>▦ Плитки</a>
+    <a href="{{ request.url.include_query_params(view='list') }}" class="{{ 'active' if view_mode == 'list' else '' }}" {% if view_mode == 'list' %}aria-current="page"{% endif %}>☷ Список</a>
   </div>
+</div>
+
+{% if not profiles %}
+<div class="empty"><p>Игроков по этим фильтрам пока нет.</p></div>
+{% else %}
+<div class="card-grid player-grid {{ 'directory-list' if view_mode == 'list' else '' }}">
+  {% for p in profiles %}
+  <a class="card player-card directory-card" href="/{{ game.key }}/agents/{{ p.user_id }}">
+    <span class="directory-card-index">{{ '%02d'|format(loop.index) }} / ИГРОК</span>
+    <div class="directory-card-main">
+      <div class="row-between">
+        <h3>{{ p.nickname }}</h3>
+        <span class="pill">ищет команду</span>
+      </div>
+      <p class="directory-card-meta">{{ game.display_rating(p.rating_raw) }}{% if p.region %} · {{ p.region }}{% endif %}</p>
+      {% if p.preferred_roles %}
+      <div class="chip-row">{% for rk in p.preferred_roles %}{% set r = game.role_by_key(rk) %}{% if r %}<span class="pill">{{ r.short }}</span>{% endif %}{% endfor %}</div>
+      {% endif %}
+      {% if p.about %}<p class="directory-card-description">{{ p.about[:120] }}{% if p.about|length > 120 %}…{% endif %}</p>{% endif %}
+    </div>
+    <span class="directory-card-open">Открыть игрока <span aria-hidden="true">↗</span></span>
+  </a>
   {% endfor %}
 </div>
 {% endif %}

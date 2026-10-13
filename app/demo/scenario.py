@@ -343,10 +343,20 @@ def run() -> list[Step]:
     R.check("Игрок может отозвать свою заявку", _app_status(aid) == "withdrawn")
 
     # ------------------------------------------------------------------ 6
-    R.sec("6. Свободные агенты и приглашения")
+    R.sec("6. Свободные игроки и приглашения")
     R.check("Свободный агент виден в списке", ag.nick in anon.get("/dota2/agents").text)
     R.check("Фильтр агентов по роли pos5 находит игрока", ag.nick in anon.get("/dota2/agents?role=pos5").text)
     R.check("Фильтр по другой роли его скрывает", ag.nick not in anon.get("/dota2/agents?role=pos1").text)
+    agent_list = anon.get("/dota2/agents?role=pos5&view=list").text
+    R.check("Список игроков сохраняет фильтр и режим списка", 'directory-list' in agent_list and ag.nick in agent_list)
+    agent_url = f"/dota2/agents/{uid(ag.email)}"
+    R.check("Из каталога можно открыть игрока", agent_url in agent_list)
+    agent_page = anon.get(agent_url).text
+    R.check("Публичный профиль показывает игрока без почты", ag.nick in agent_page and ag.email not in agent_page)
+    R.check("Профиль игрока не смешивает дисциплины", anon.get(f"/lol/agents/{uid(ag.email)}").status_code == 404)
+    R.check("Капитан видит приглашение в профиле игрока", 'Отправить приглашение' in cap2.get(agent_url))
+    R.check("Каталог команд переключается в список", 'directory-list' in anon.get("/dota2/teams?view=list").text)
+    R.check("Команда открывается из списка", f'/dota2/teams/{t2}' in anon.get("/dota2/teams?view=list").text)
     r = cap2.c.post(f"/dota2/agents/{uid(ag.email)}/invite", data={"role": "pos5", "message": "Го к нам"})
     R.check("Капитан отправил приглашение → 303", r.status_code == 303)
     me_ag = ag.get("/dota2/me")
@@ -358,6 +368,7 @@ def run() -> list[Step]:
     ag.c.post(f"/invites/{inv}/accept")
     R.check("Принятое приглашение занимает слот", slots(t2)["pos5"]["user_id"] == uid(ag.email))
     R.check("Принявший пропал из списка свободных агентов", ag.nick not in anon.get("/dota2/agents").text)
+    R.check("Игрок с командой больше не виден как свободный", anon.get(agent_url).status_code == 404)
 
     # ------------------------------------------------------------------ 7
     R.sec("7. Жизненный цикл команды")
@@ -486,7 +497,7 @@ def run() -> list[Step]:
 
     public = anon.get("/dota2/teams").text
     R.check("Демо-команды видны посетителям в списке команд", public.count('class="card team-card"') > 8)
-    R.check("Демо-игроки видны в свободных агентах", anon.get("/dota2/agents").text.count('class="card"') > 5)
+    R.check("Демо-игроки видны в свободных игроках", anon.get("/dota2/agents").text.count('class="card player-card directory-card"') > 5)
     lower = (public + anon.get("/dota2/agents").text + anon.get("/lol/teams").text).lower()
     R.check("Служебная метка демо-данных не просачивается в публичный HTML",
             not any(w in lower for w in ["demo_tag", "seed", "демо", "тестов"]))
